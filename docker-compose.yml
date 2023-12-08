@@ -1,0 +1,304 @@
+version: '3.5'
+
+services:
+
+  frontend:
+    image: frontend:latest
+    build: ./frontend
+    container_name: frontend-service
+    depends_on:
+      currency-client:
+        condition: service_started
+    ports:
+      - '3000:3000'
+
+  discovery-server-service:
+    image: eureka-server:latest
+    build: eureka-service
+    container_name: discovery-server-service
+    depends_on:
+      config-server:
+        condition: service_healthy
+    environment:
+      spring.config.import: optional:configserver:http://config-server:8888
+    ports:
+      - '8761:8761'
+    healthcheck:
+      test: [ "CMD", "curl", "-I", "http://localhost:8761" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  gateway-service:
+    image: gateway-service:latest
+    build: gateway-service
+    container_name: gateway-service
+    ports:
+      - '8000:8000'
+    environment:
+      eureka.client.serviceUrl.defaultZone: http://discovery-server-service:8761/eureka/
+      spring.config.import: optional:configserver:http://config-server:8888
+    depends_on:
+      discovery-server-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+
+  config-server:
+    build: config-server
+    image: config-server:1.0.0
+    container_name: config-server
+    depends_on:
+      logstash:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-I", "http://localhost:8888" ]
+      interval: 10s
+      timeout: 20s
+      retries: 5
+      start_period: 10s
+    ports:
+      - '8888:8888'
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper-service
+    depends_on:
+      - config-server
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - '22181:2181'
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka-service
+    depends_on:
+      - zookeeper
+      - config-server
+    ports:
+      - '29092:29092'
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: LISTENER://kafka:9092,LISTENER_HOST://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER:PLAINTEXT,LISTENER_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  currency-service:
+    container_name: currency-service
+    image: currency-service:latest
+    build: currency
+    ports:
+      - '8080:8080'
+    depends_on:
+      discovery-server-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      currency-database:
+        condition: service_started
+      mongo-express:
+        condition: service_started
+    environment:
+      eureka.client.serviceUrl.defaultZone: http://discovery-server-service:8761/eureka/
+      spring.config.import: optional:configserver:http://config-server:8888
+
+  currency-client:
+    container_name: currency-client
+    image: currency-client:latest
+    build: currency-client
+    ports:
+      - '8082:8082'
+    depends_on:
+      discovery-server-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      currency-service:
+        condition: service_started
+      cassandra:
+        condition: service_healthy
+    restart: on-failure
+    environment:
+      eureka.client.serviceUrl.defaultZone: http://discovery-server-service:8761/eureka/
+      spring.config.import: optional:configserver:http://config-server:8888
+
+  mail-sender:
+    container_name: mail-sender
+    image: mail-sender:latest
+    build: mail-sender
+    ports:
+      - '8084:8084'
+    depends_on:
+      discovery-server-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      currency-service:
+        condition: service_started
+    environment:
+      eureka.client.serviceUrl.defaultZone: http://discovery-server-service:8761/eureka/
+      spring.config.import: optional:configserver:http://config-server:8888
+
+  user-service:
+    container_name: user-service
+    image: user-service:latest
+    build: user-service
+    ports:
+      - '8085:8085'
+    depends_on:
+      discovery-server-service:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+    environment:
+      eureka.client.serviceUrl.defaultZone: http://discovery-server-service:8761/eureka/
+      spring.config.import: optional:configserver:http://config-server:8888
+
+  currency-database:
+    container_name: currency-database
+    image: mongo:latest
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: rootuser
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+      MONGO_INITDB_DATABASE: currency
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    container_name: mongo_ui
+    ports:
+      - '8081:8081'
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: rootuser
+      ME_CONFIG_MONGODB_ADMINPASSWORD: rootpass
+      ME_CONFIG_MONGODB_URL: mongodb://rootuser:rootpass@currency-database:27017/
+
+  redis:
+    image: "redis:latest"
+    container_name: redis
+    ports:
+      - '6379:6379'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - REDIS_DISABLE_COMMANDS=FLUSHDB,FLUSHALL
+
+  users-database:
+    container_name: users-database
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: users
+    ports:
+      - '5432:5432'
+    restart: unless-stopped
+
+  pgadmin:
+    container_name: pgadmin
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - '5050:80'
+    restart: unless-stopped
+
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra
+    ports:
+      - '9042:9042'
+    environment:
+      - CASSANDRA_USER=cassandra
+      - CASSANDRA_PASSWORD=cassandra
+    healthcheck:
+      test: nodetool status
+
+  filebeat:
+    image:  docker.elastic.co/beats/filebeat:7.9.0
+    container_name: filebeat
+    user: root
+    command:
+      - -e
+      - --strict.perms=false
+    volumes:
+      - ./volumes/filebeat/config/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro,Z
+      - type: bind
+        source: /var/lib/docker/containers
+        target: /var/lib/docker/containers
+        read_only: true
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+    depends_on:
+      logstash:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+
+  elasticsearch:
+    image:  docker.elastic.co/elasticsearch/elasticsearch:7.6.2
+    container_name: elasticsearch
+    volumes:
+      - ./volumes/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
+      - ./volumes/elastic_data:/usr/share/elasticsearch/data:Z
+    ports:
+      - 9200:9200
+      - 9300:9300
+    environment:
+      ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+      discovery.type: single-node
+    healthcheck:
+      test: [ "CMD-SHELL", "curl --silent --fail http://localhost:9200/_cluster/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.6.2
+    container_name: logstash
+    volumes:
+      - ./volumes/logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
+      - ./volumes/logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
+    ports:
+      - 5044:5044
+      - 50000:50000/tcp
+      - 50000:50000/udp
+      - 9600:9600
+    environment:
+      LS_JAVA_OPTS: -Xms256m -Xmx256m
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9600" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.6.2
+    container_name: kibana
+    volumes:
+      - ./volumes/kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
+    ports:
+      - 5601:5601
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  elasticsearch:
+
+
+
+

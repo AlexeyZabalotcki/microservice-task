@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- Incorporating Spring Boot's base logback configurations -->
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+
+    <!-- Setting properties from Spring Boot's application context -->
+    <springProperty scope="context" name="service" source="spring.application.name" />
+    <springProperty scope="context" name="log.name" source="spring.application.name" defaultValue="localhost.log"/>
+
+    <!-- FOR LogstashTcpSocketAppender (TCP output) -->
+    <!-- The LogstashTcpSocketAppender is a logback appender that allows you to send log events directly to Logstash using TCP.
+         It provides a low-latency, real-time streaming approach for log transmission. This option is suitable if you want
+         to send logs directly from your microservice API to Logstash without any intermediary components. -->
+<!--    <appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">-->
+<!--        <destination>${LOGSTASH_HOST:-logstash}:${LOGSTASH_PORT:-50000}</destination>-->
+<!--        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">-->
+<!--            <providers>-->
+<!--                <mdc /> &lt;!&ndash; MDC variables on the Thread will be included as JSON fields in the log event &ndash;&gt;-->
+<!--                <context /> &lt;!&ndash; Outputs entries from logback's context (e.g., properties, include files) &ndash;&gt;-->
+<!--                <logLevel /> &lt;!&ndash; Outputs the log level of the event (e.g., INFO, WARN, ERROR) &ndash;&gt;-->
+<!--                <loggerName /> &lt;!&ndash; Outputs the name of the logger generating the log event &ndash;&gt;-->
+<!--                <threadName /> &lt;!&ndash; Outputs the name of the thread generating the log event &ndash;&gt;-->
+<!--                <message /> &lt;!&ndash; Outputs the log message itself &ndash;&gt;-->
+<!--                <logstashMarkers /> &lt;!&ndash; Outputs any Logstash markers associated with the log event &ndash;&gt;-->
+<!--                <stackTrace /> &lt;!&ndash; Outputs the stack trace if available for the log event &ndash;&gt;-->
+<!--            </providers>-->
+<!--        </encoder>-->
+<!--    </appender>-->
+
+    <!-- FOR FileBeat -->
+    <!-- Filebeat is considered one of the best log shippers as it is lightweight, supports SSL & TLS encryption, and is extremely reliable.
+         However, it cannot transform the logs into easy-to-analyze structured data. That's the part performed by Logstash.
+         So, if you require advanced log enhancement like filtering out unwanted bits of data or transforming data to another format,
+         you have to go for Logstash. But if you are only interested in the timestamp and message content, you can choose
+         Filebeat to act as your log aggregator, especially in a distributed environment. -->
+
+        <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+            <file>/path/to/logfile.log</file>
+            <encoder>
+                <pattern>
+                    %d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId:-} spanId=%X{spanId:-}] - %msg%n
+                </pattern>
+            </encoder>
+        </appender>
+
+    <root level="info">
+<!--        <appender-ref ref="LOGSTASH" />-->
+        <!-- Uncomment the line below if using Filebeat! -->
+                 <appender-ref ref="FILE" />
+    </root>
+</configuration>

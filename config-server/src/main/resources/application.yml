@@ -1,0 +1,34 @@
+server:
+  port: 8888
+spring:
+  application:
+    name: config-server
+  cloud:
+    config:
+      discovery:
+        enabled: true
+      server:
+        bootstrap: true
+        encrypt:
+          enabled: false
+        git:
+          uri: https://github.com/AlexeyZabalotcki/config-server-data
+          username: AlexeyZabalotcki
+          password: "{cipher}AQCtQIKx5kTNCY64KVZxz6bCcEPQE5sJSODW8y68PyO6cRZHr4yQ+44GiaB5Ve3BsggVKxaoYdGLSemtwbLE14djx8OcE3pW4RplC1HaxuSwUphFPuKizVYsbUlienb+rfGI9soCs0dZA/s4CqP1brNrvnZK7y7mOxrqPrp7DZvt8n7BjtpB14aZN29OZFXacBdvmpSE+orVSzriCMaKq0sRKexGS04ttx4j7v5CpWo0VtgKLg+TdncUOJHmg6u42iXRameEKJWr/fy8JElHcvwap0YqhFhMdM+zmtESw+o5PHi85AKQ/fPwNovCkFNV7AmNe2j3NrHrZz+bFFevQpFX18zgGp4po5SMX0RjRIw3PyLT4m0N8Qik4y+SBmDw5enT9Y7TVXVKHKeVKJ1UkhbMR/gmu76ytFi2CC/phW2srQYECFvgV4Xh71oWURZehNUpyqY0TopsrN0hzvp16nrV4TeqgZU6FZnUite2Qgz56w=="
+#          password: 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
+          searchPaths: currency,eureka-service, currency-client, mail-sender, user-service, gateway-service, logs-service
+          clone-on-start: true
+          default-label: master
+
+encrypt:
+#  key: fH4FsaTVDwq15SVSogc5RCzp1P9sEAdss40A
+  key-store:
+    location: classpath:key/keystore.jks
+    password: 123456789
+    alias: MyKeyStoreSecret
+
+logging:
+  level:
+    com.netflix: WARN
+    org.springframework.web: WARN
+    com.specific.group.config.server: DEBUG

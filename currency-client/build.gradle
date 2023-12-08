@@ -1,0 +1,65 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '2.7.17'
+	id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+}
+
+group = 'com.specific-group'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	sourceCompatibility = '17'
+}
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+
+repositories {
+	mavenCentral()
+}
+
+ext {
+	set('springCloudVersion', "2021.0.8")
+	set('feignReactorVersion', "3.2.0")
+	set('reactorKafkaVersion', "1.3.19")
+	set('jsonWebWokenVersion', "0.11.5")
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-cache'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis-reactive'
+	implementation 'org.springframework.boot:spring-boot-starter-data-cassandra-reactive'
+	implementation 'org.springframework.boot:spring-boot-starter-webflux'
+	implementation 'org.springframework.cloud:spring-cloud-config-client'
+	implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+	implementation "com.playtika.reactivefeign:feign-reactor-spring-cloud-starter:${feignReactorVersion}"
+	implementation 'org.springframework.security:spring-security-rsa:1.1.1'
+
+	implementation "org.springframework.kafka:spring-kafka"
+	implementation "io.projectreactor.kafka:reactor-kafka:${reactorKafkaVersion}"
+	implementation "io.jsonwebtoken:jjwt-api:${jsonWebWokenVersion}"
+	implementation "io.jsonwebtoken:jjwt-gson:${jsonWebWokenVersion}"
+	implementation 'net.logstash.logback:logstash-logback-encoder:6.4'
+	runtimeOnly "io.jsonwebtoken:jjwt-impl:${jsonWebWokenVersion}"
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+	annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'io.projectreactor:reactor-test'
+}
+
+dependencyManagement {
+	imports {
+		mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

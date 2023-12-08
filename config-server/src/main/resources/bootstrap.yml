@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: config-server
+#encrypt.key: fH4FsaTVDwq15SVSogc5RCzp1P9sEAdss40A
+#  key-store:
+#    location: classpath:keystore.jks
+#    password: 123456789
+#    alias: mysecretkey
+#    secret: 123456789
+
+logging:
+  pattern:
+    # Take the span id and trace id from the Mapped Diagnostic Context (MDC) and put them into the log message.
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'

@@ -1,0 +1,11 @@
+spring:
+  application:
+   name: currency
+encrypt:
+#  Symmetric Encryption
+  #  key: fH4FsaTVDwq15SVSogc5RCzp1P9sEAdss40A
+  #  Asymmetric Encryption
+  key-store:
+    location: classpath:key/keystore.jks
+    password: 123456789
+    alias: MyKeyStoreSecret

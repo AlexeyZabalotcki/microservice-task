@@ -1,0 +1,13 @@
+spring:
+  profiles:
+    active:
+      default
+  cloud:
+    config:
+      enable: true
+
+logging:
+  pattern:
+    level:
+    org.springframework.cloud.gateway: DEBUG
+    com.specific.group.gateway.service: DEBUG

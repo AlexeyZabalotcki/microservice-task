@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: user-service
+encrypt:
+  #  key: fH4FsaTVDwq15SVSogc5RCzp1P9sEAdss40A
+  key-store:
+    location: classpath:key/keystore.jks
+    password: 123456789
+    alias: MyKeyStoreSecret

@@ -1,0 +1,11 @@
+spring:
+  profiles:
+    active:
+      default
+  cloud:
+    config:
+      enable: true
+
+logging:
+  level:
+    com.specific.group.currency.client: DEBUG

@@ -1,0 +1,12 @@
+spring:
+  profiles:
+    active:
+      default
+  cloud:
+    config:
+      enable: true
+
+logging:
+  pattern:
+    level:
+    com.specific.group.com.user.service: DEBUG

@@ -1,0 +1,17 @@
+-- liquibase formatted sql
+
+-- changeset create tables:add constraints
+
+DROP TABLE IF EXISTS users;
+DROP SEQUENCE IF EXISTS users_seq;
+
+CREATE SEQUENCE users_seq start 1 increment 1;
+
+CREATE TABLE IF NOT EXISTS users (
+id          BIGINT DEFAULT nextval('users_seq') PRIMARY KEY,
+email VARCHAR(255) NOT NULL,
+password VARCHAR(255) NOT NULL,
+role VARCHAR(255) NOT NULL
+);
+
+
